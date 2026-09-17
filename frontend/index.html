@@ -1,13 +1,444 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Micron BOM Intelligence & Reconciliation Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="chat.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOP NAVIGATION / BRAND -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="brand-logo-badge">
+          <span class="logo-text">µ</span>
+        </div>
+        <div class="brand-title">
+          <h1>MICRON BOM INTELLIGENCE</h1>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="search-bar-header">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="global-search" placeholder="Search Material / FPN / Chip..." autocomplete="off" />
+          <div id="search-suggestions" class="search-suggestions hidden"></div>
+        </div>
+
+        <div class="system-status-indicator">
+          <span class="status-dot pulsing"></span>
+          <span class="status-label">Live</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN BODY WITH SIDEBAR & CONTENT TABS -->
+    <div class="main-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <button class="nav-tab active" data-tab="overview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Overview</span>
+          </button>
+
+          <button class="nav-tab" data-tab="anomalies">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Anomalies</span>
+            <span class="badge-count" id="badge-anomalies">0</span>
+          </button>
+
+          <button class="nav-tab" data-tab="reconciliation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 3h5v5"></path>
+              <path d="M4 20L21 3"></path>
+              <path d="M21 16v5h-5"></path>
+              <path d="M15 15l6 6"></path>
+              <path d="M4 4l5 5"></path>
+            </svg>
+            <span>Reconciliation</span>
+            <span class="badge-count badge-warning" id="badge-recon">0</span>
+          </button>
+
+          <button class="nav-tab" data-tab="tree">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>BOM Explorer</span>
+          </button>
+
+          <button class="nav-tab" data-tab="catalog">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Catalog</span>
+          </button>
+
+          <button id="btn-open-chat" class="sidebar-ai-button" title="Open Micron AI Assistant">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Ask AI</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="stage-pipeline-card" aria-label="BOM explosion flow from finished part number to raw material">
+            <h4>BOM EXPLOSION FLOW</h4>
+            <div class="pipeline-row">
+              <strong>FPN</strong><i>→</i><span>PKG</span><i>→</i><span>TEST</span><i>→</i><span>ASMB</span><i>→</i><span>MOD</span>
+            </div>
+            <div class="pipeline-row pipeline-row-final">
+              <span>CHIP</span><i>→</i><span>DIE</span><i>→</i><span>WAFER</span><i>→</i><span>FAB</span><i>→</i><span>RAW</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CONTENT PANELS -->
+      <main class="content-area">
+
+        <!-- TAB 1: OVERVIEW -->
+        <section id="tab-overview" class="tab-pane active">
+          <div class="pane-header">
+            <div>
+              <h2>BOM Health Overview</h2>
+            </div>
+          </div>
+
+          <!-- KPI STAT CARDS -->
+          <div class="kpi-grid">
+            <div class="kpi-card accent-cyan">
+              <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">BOM Relationships</span>
+                <span class="kpi-value" id="kpi-single-level">--</span>
+                <span class="kpi-note" id="kpi-unique-headers">-- parent headers</span>
+              </div>
+            </div>
+
+            <div class="kpi-card accent-blue">
+              <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Flat BOM Paths</span>
+                <span class="kpi-value" id="kpi-flat-records">--</span>
+                <span class="kpi-note" id="kpi-unique-comp">-- unique parts</span>
+              </div>
+            </div>
+
+            <div class="kpi-card accent-rose">
+              <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Critical Anomalies</span>
+                <span class="kpi-value text-critical" id="kpi-critical-anomalies">--</span>
+                <span class="kpi-note" id="kpi-total-anomalies">-- total flagged anomalies</span>
+              </div>
+            </div>
+
+            <div class="kpi-card accent-amber">
+              <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Reconciliation Diffs</span>
+                <span class="kpi-value text-warning" id="kpi-recon-discrepancies">--</span>
+                <span class="kpi-note">ERP vs Reconstructed Mismatches</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE AND ANOMALY BREAKDOWN -->
+          <div class="overview-grid">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Stage Distribution</h3>
+              </div>
+              <div class="stage-bar-chart" id="stage-distribution-container">
+                <div class="loader-placeholder">Analyzing stage distribution...</div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Anomaly Composition</h3>
+              </div>
+              <div class="anomaly-type-list" id="anomaly-summary-container">
+                <div class="loader-placeholder">Auditing supply chain...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- QUICK RECONCILIATION RADAR -->
+          <div class="panel-card mt-4">
+            <div class="panel-card-header">
+              <h3>Reconciliation Summary</h3>
+            </div>
+            <div class="recon-breakdown-cards" id="recon-summary-cards">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: ANOMALIES -->
+        <section id="tab-anomalies" class="tab-pane">
+          <div class="pane-header">
+            <div>
+              <h2>BOM Anomalies</h2>
+            </div>
+            <div class="header-filters">
+              <div class="filter-group">
+                <select id="anomaly-filter-type" aria-label="Filter anomalies by type">
+                  <option value="">All Categories</option>
+                  <option value="CYCLE">Circular References (CYCLE)</option>
+                  <option value="ORPHAN">Orphan Components (ORPHAN)</option>
+                  <option value="INCOMPLETE">Incomplete Manufacturing Legs (INCOMPLETE)</option>
+                  <option value="STAGE_VIOLATION">Stage Progression Violations (STAGE_VIOLATION)</option>
+                  <option value="EXPIRED_ACTIVE">Expired Active BOMs (EXPIRED_ACTIVE)</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <select id="anomaly-filter-severity" aria-label="Filter anomalies by severity">
+                  <option value="">All Severities</option>
+                  <option value="CRITICAL">Critical</option>
+                  <option value="WARNING">Warning</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="anomalies-table">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Type</th>
+                  <th>Root / Material</th>
+                  <th>Issue Description</th>
+                  <th>Path / Lineage Context</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="anomalies-table-body">
+                <tr><td colspan="6" class="text-center py-4">Scanning BOM graph for anomalies...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 3: RECONCILIATION -->
+        <section id="tab-reconciliation" class="tab-pane">
+          <div class="pane-header">
+            <div>
+              <h2>BOM Reconciliation</h2>
+            </div>
+            <div class="header-filters">
+              <div class="filter-group">
+                <select id="recon-filter-type" aria-label="Filter reconciliation discrepancies by type">
+                  <option value="">All Discrepancies</option>
+                  <option value="MATERIAL_MISMATCH">Material Mismatch</option>
+                  <option value="PHANTOM_ENTRY">Phantom Entry</option>
+                  <option value="FLAT_ONLY">Flat ERP Only</option>
+                  <option value="RECONSTRUCTION_ONLY">Reconstructed Only</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="recon-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Discrepancy Type</th>
+                  <th>Finished Part Number (FPN)</th>
+                  <th>Reconstruction vs. ERP Discrepancy Detail</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="recon-table-body">
+                <tr><td colspan="5" class="text-center py-4">Reconciling BOM paths...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 4: TREE & LINEAGE -->
+        <section id="tab-tree" class="tab-pane">
+          <div class="pane-header">
+            <div>
+              <h2>BOM Explorer</h2>
+            </div>
+            <div class="header-filters">
+              <div class="filter-group">
+                <input type="text" id="tree-material-input" placeholder="e.g. FPN-0001" list="material-datalist" />
+                <datalist id="material-datalist"></datalist>
+              </div>
+              <button class="btn btn-primary" id="btn-load-tree">Load BOM</button>
+              <button class="btn btn-secondary" id="btn-trace-forward">Components</button>
+              <button class="btn btn-secondary" id="btn-trace-reverse">Where Used</button>
+            </div>
+          </div>
+
+          <div class="tree-and-lineage-layout">
+            <div class="tree-viewport-card">
+              <div class="viewport-controls">
+                <div class="viewport-title" id="tree-current-title">Hierarchical Explosion</div>
+                <div class="tree-legend">
+                  <span class="legend-item"><span class="dot-stage fpn"></span> FPN</span>
+                  <span class="legend-item"><span class="dot-stage pkg"></span> PKG/TEST</span>
+                  <span class="legend-item"><span class="dot-stage chip"></span> CHIP/DIE</span>
+                  <span class="legend-item"><span class="dot-stage raw"></span> RAW</span>
+                  <span class="legend-item"><span class="dot-stage cycle"></span> Cycle</span>
+                </div>
+              </div>
+
+              <div class="tree-canvas-wrapper" id="tree-canvas-wrapper">
+                <div id="tree-root-container" class="tree-node-tree">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- LINEAGE TRACE PANEL -->
+            <div class="lineage-trace-card">
+              <div class="panel-card-header">
+                <h3 id="lineage-header">Material Lineage Trace</h3>
+                <span class="badge" id="lineage-badge">Forward</span>
+              </div>
+              <div class="lineage-steps-container" id="lineage-steps-container">
+                <div class="placeholder-text">Select a material, then choose Components or Where Used.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: DATA CATALOG -->
+        <section id="tab-catalog" class="tab-pane">
+          <div class="pane-header">
+            <div>
+              <h2>Data Catalog</h2>
+            </div>
+            <div class="header-filters">
+              <div class="toggle-tabs">
+                <button class="toggle-btn active" id="btn-catalog-single">Relationships</button>
+                <button class="toggle-btn" id="btn-catalog-flat">Flat Paths</button>
+              </div>
+              <input type="text" id="catalog-search" placeholder="Search catalog..." />
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="catalog-table">
+              <thead id="catalog-table-head">
+                <!-- Dynamically populated -->
+              </thead>
+              <tbody id="catalog-table-body">
+                <tr><td colspan="10" class="text-center py-4">Loading catalog data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination-footer">
+            <span id="catalog-page-info">Showing 1-25 of --</span>
+            <div class="pagination-buttons">
+              <button class="btn-sm btn-outline" id="btn-page-prev" disabled>Previous</button>
+              <button class="btn-sm btn-outline" id="btn-page-next">Next</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- MATERIAL DETAIL MODAL -->
+    <div id="material-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-material-title">Material Details</h3>
+          <button class="btn-close" id="btn-close-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-material-body">
+          <!-- Loaded via JS -->
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btn-modal-tree">Open in Explorer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOATING AI CONVERSATIONAL AGENT DRAWER -->
+    <div id="ai-chat-drawer" class="chat-drawer closed">
+      <div class="chat-drawer-header">
+        <div class="chat-drawer-title">
+          <span class="chat-status-dot"></span>
+          <div>
+            <h3>Micron BOM AI Assistant</h3>
+          </div>
+        </div>
+        <button id="btn-close-chat" class="btn-chat-close">&times;</button>
+      </div>
+
+      <div id="chat-messages" class="chat-messages-container">
+        <div class="chat-msg system">
+          Ask about BOM components, shortages, lineage, anomalies, or plant differences.
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <textarea id="chat-user-input" placeholder="Ask about materials, shortages, cycles, lineage..." rows="1"></textarea>
+        <button id="btn-send-chat" class="btn-send-chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
 </html>

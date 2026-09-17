@@ -202,6 +202,11 @@ class BOMAnomalyDetector:
     def detect_stage_violations(self):
 
         anomalies = []
+        cycle_edges = set()
+        if self.graph is not None:
+            for cycle in self.detect_cycles():
+                path = cycle.get("path", [])
+                cycle_edges.update(zip(path, path[1:]))
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -233,6 +238,11 @@ class BOMAnomalyDetector:
 
             plant = row["PLANT"]
 
+            # Cyclic relationships are already reported as their own critical
+            # anomaly; do not duplicate the closing edge as a stage violation.
+            if (parent, child) in cycle_edges:
+                continue
+
             # Ignore rows with missing stage information
             if not parent_stage or not child_stage:
                 continue
@@ -249,7 +259,7 @@ class BOMAnomalyDetector:
 
             # Parent should normally be later in the
             # manufacturing process than its child.
-            if child_order >= parent_order:
+            if child_order < parent_order:
                 continue
 
             anomalies.append({
