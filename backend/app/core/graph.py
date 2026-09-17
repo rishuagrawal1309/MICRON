@@ -44,7 +44,7 @@ class BOMGraph:
         return self.forward_graph.get(material, [])
 
     def get_parents(self, material):
-        return self.reverse_graph.get(material)
+        return self.reverse_graph.get(material, [])
 
 if __name__ == "__main__":
 
