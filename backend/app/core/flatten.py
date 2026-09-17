@@ -38,10 +38,17 @@ class BOMFlattener:
             # Leaf node
             # -------------------------------------------------
             if not children:
+
+                if node.startswith("RAW-"):
+                    status = "COMPLETE"
+                else:
+                    status = "INCOMPLETE"
+
                 results.append({
-                    "path": current_path,
-                    "status": "COMPLETE"
+                     "path": current_path,
+                    "status": status
                 })
+
                 return
 
             # -------------------------------------------------
@@ -109,11 +116,15 @@ class BOMFlattener:
     def reconstruct_all(self):
         """
         Reconstruct BOM_FLAT records for all FPNs in the graph.
+
+        Duplicate paths are removed.
+        Incomplete and cyclic paths are excluded.
         """
 
         reconstructed = []
+        seen_paths = set()
 
-        # FPNs are the root materials that start with FPN-
+        # Find all FPN roots
         fpns = [
             material
             for material in self.graph.forward_graph
@@ -126,13 +137,21 @@ class BOMFlattener:
 
             for result in paths:
 
-                # Ignore cyclic paths for BOM_FLAT reconstruction
+                # Only complete paths belong in reconstructed BOM_FLAT
                 if result["status"] != "COMPLETE":
                     continue
 
-                record = self.path_to_flat_record(
-                    result["path"]
-                )
+                path = result["path"]
+
+                # Remove duplicate paths
+                path_key = tuple(path)
+
+                if path_key in seen_paths:
+                    continue
+
+                seen_paths.add(path_key)
+
+                record = self.path_to_flat_record(path)
 
                 reconstructed.append(record)
 
