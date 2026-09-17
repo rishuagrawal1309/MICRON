@@ -34,7 +34,14 @@ class BOMTraversal:
             }
 
             for child in children:
-                result["children"].append(dfs(child))
+
+                child_result = dfs(child)
+
+                edge_data = self.graph.get_edge_data(node, child)
+
+                child_result["metadata"] = edge_data
+
+                result["children"].append(child_result)
 
             visited.remove(node)
 

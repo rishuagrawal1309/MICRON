@@ -92,13 +92,13 @@ class BOMReconciler:
         provided = self.get_flat_records()
 
         reconstructed_map = {
-            self.normalize_record(record): record
-            for record in reconstructed
+        self.normalize_record(record): record
+        for record in reconstructed
         }
 
         provided_map = {
-            self.normalize_record(record): record
-            for record in provided
+        self.normalize_record(record): record
+        for record in provided
         }
 
         results = []
@@ -107,46 +107,33 @@ class BOMReconciler:
         # Material mismatches
         # -------------------------------------------------
 
-        mismatches = self.find_material_mismatches(
+        results.extend(
+        self.find_material_mismatches(
             reconstructed,
             provided
         )
+        )
 
-        results.extend(mismatches)
-
-         # -------------------------------------------------
+        # -------------------------------------------------
         # Phantom entries
         # -------------------------------------------------
 
-        phantom_entries = self.find_phantom_entries(
-            provided
-        )
-
-        results.extend(phantom_entries)
+        results.extend(
+        self.find_phantom_entries(provided)
+         )
 
         # -------------------------------------------------
-        # Present in BOM_FLAT but not reconstructed
+         # Present in BOM_FLAT but not reconstructed
         # -------------------------------------------------
 
         for key, record in provided_map.items():
 
             if key not in reconstructed_map:
 
-                # Don't immediately classify as FLAT_ONLY if
-                # the same FPN exists in reconstruction.
-                fpn = record.get("FPN")
-
-                same_fpn_exists = any(
-                    r.get("FPN") == fpn
-                    for r in reconstructed
-                )
-
-                if not same_fpn_exists:
-
-                    results.append({
-                        "type": "FLAT_ONLY",
-                        "record": record
-                    })
+                results.append({
+                "type": "FLAT_ONLY",
+                "record": record
+            })
 
         # -------------------------------------------------
         # Present in reconstruction but not BOM_FLAT
@@ -156,26 +143,17 @@ class BOMReconciler:
 
             if key not in provided_map:
 
-                fpn = record.get("FPN")
-
-                same_fpn_exists = any(
-                    r.get("FPN") == fpn
-                    for r in provided
-                )
-
-                if not same_fpn_exists:
-
-                    results.append({
-                        "type": "RECONSTRUCTION_ONLY",
-                        "record": record
-                    })
+                results.append({
+                "type": "RECONSTRUCTION_ONLY",
+                "record": record
+            })
 
         return results
     
     def find_material_mismatches(self, reconstructed, provided):
         """
-        Find paths where the same structural BOM position exists
-        but material values differ.
+        Find BOM paths where the same FPN and structural position
+        exist, but one or more material values differ.
         """
 
         mismatches = []
@@ -183,73 +161,77 @@ class BOMReconciler:
         reconstructed_groups = {}
         provided_groups = {}
 
-        # -------------------------------------------------
-        # Group reconstructed records
-        # -------------------------------------------------
+    # -------------------------------------------------
+    # Group reconstructed records by FPN
+    # -------------------------------------------------
 
         for record in reconstructed:
 
-            signature = self.get_path_signature(record)
+            fpn = record.get("FPN")
 
             reconstructed_groups.setdefault(
-                signature, []
-            ).append(record)
+            fpn,
+            []
+        ).append(record)
 
         # -------------------------------------------------
-        # Group provided records
+        # Group provided records by FPN
         # -------------------------------------------------
 
         for record in provided:
 
-            signature = self.get_path_signature(record)
+            fpn = record.get("FPN")
 
             provided_groups.setdefault(
-                signature, []
+            fpn,
+            []
             ).append(record)
 
-        # -------------------------------------------------
-        # Compare matching structural paths
-        # -------------------------------------------------
+    # -------------------------------------------------
+    # Compare records belonging to the same FPN
+    # -------------------------------------------------
 
-        for signature in reconstructed_groups:
+        for fpn in reconstructed_groups:
 
-            if signature not in provided_groups:
+            if fpn not in provided_groups:
                 continue
 
-            reconstructed_records = reconstructed_groups[signature]
-            provided_records = provided_groups[signature]
+        reconstructed_records = reconstructed_groups[fpn]
+        provided_records = provided_groups[fpn]
 
-            # Compare corresponding records
-            count = min(
-                len(reconstructed_records),
-                len(provided_records)
-            )
+        count = min(
+            len(reconstructed_records),
+            len(provided_records)
+        )
 
-            for i in range(count):
+        for i in range(count):
 
-                recon = reconstructed_records[i]
-                flat = provided_records[i]
+            recon = reconstructed_records[i]
+            flat = provided_records[i]
 
-                differences = {}
+            differences = {}
 
-                for column in self.FLAT_COLUMNS:
+            for column in self.FLAT_COLUMNS:
 
-                    if recon.get(column) != flat.get(column):
+                recon_value = recon.get(column)
+                flat_value = flat.get(column)
 
-                        differences[column] = {
-                            "reconstructed": recon.get(column),
-                            "provided": flat.get(column)
-                        }
+                if recon_value != flat_value:
 
-                if differences:
+                    differences[column] = {
+                        "reconstructed": recon_value,
+                        "provided": flat_value
+                    }
 
-                    mismatches.append({
-                        "type": "MATERIAL_MISMATCH",
-                        "fpn": signature[0],
-                        "differences": differences,
-                        "reconstructed": recon,
-                        "provided": flat
-                    })
+            if differences:
+
+                mismatches.append({
+                    "type": "MATERIAL_MISMATCH",
+                    "fpn": fpn,
+                    "differences": differences,
+                    "reconstructed": recon,
+                    "provided": flat
+                })
 
         return mismatches
     
